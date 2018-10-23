@@ -21,17 +21,17 @@ var wallet_id;
 var xPrivKey;
 
 function replaceConsoleLog(){
-	var log_filename = conf.LOG_FILENAME || (appDataDir + '/log.txt');
-	var writeStream = fs.createWriteStream(log_filename);
-	console.log('---------------');
-	console.log('From this point, output will be redirected to '+log_filename);
-	console.log("To release the terminal, type Ctrl-Z, then 'bg'");
-	console.log = function(){
-		writeStream.write(Date().toString()+': ');
-		writeStream.write(util.format.apply(null, arguments) + '\n');
-	};
-	console.warn = console.log;
-	console.info = console.log;
+	// var log_filename = conf.LOG_FILENAME || (appDataDir + '/log.txt');
+	// var writeStream = fs.createWriteStream(log_filename);
+	// console.log('---------------');
+	// console.log('From this point, output will be redirected to '+log_filename);
+	// console.log("To release the terminal, type Ctrl-Z, then 'bg'");
+	// console.log = function(){
+	// 	writeStream.write(Date().toString()+': ');
+	// 	writeStream.write(util.format.apply(null, arguments) + '\n');
+	// };
+	// console.warn = console.log;
+	// console.info = console.log;
 }
 
 function readKeys(onDone){
@@ -83,24 +83,39 @@ function readKeys(onDone){
 			});
 		}
 		else{ // 2nd or later start
-			rl.question("Passphrase: ", function(passphrase){
-				rl.close();
-				if (process.stdout.moveCursor) process.stdout.moveCursor(0, -1);
-				if (process.stdout.clearLine)  process.stdout.clearLine();
-				var keys = JSON.parse(data);
-				var deviceTempPrivKey = Buffer(keys.temp_priv_key, 'base64');
-				var devicePrevTempPrivKey = Buffer(keys.prev_temp_priv_key, 'base64');
-				determineIfWalletExists(function(bWalletExists){
-					if (bWalletExists)
+			// rl.question("Passphrase: ", function(passphrase){
+			// 	rl.close();
+			// 	if (process.stdout.moveCursor) process.stdout.moveCursor(0, -1);
+			// 	if (process.stdout.clearLine)  process.stdout.clearLine();
+			// 	var keys = JSON.parse(data);
+			// 	var deviceTempPrivKey = Buffer(keys.temp_priv_key, 'base64');
+			// 	var devicePrevTempPrivKey = Buffer(keys.prev_temp_priv_key, 'base64');
+			// 	determineIfWalletExists(function(bWalletExists){
+			// 		if (bWalletExists)
+			// 			onDone(keys.mnemonic_phrase, passphrase, deviceTempPrivKey, devicePrevTempPrivKey);
+			// 		else{
+			// 			var mnemonic = new Mnemonic(keys.mnemonic_phrase);
+			// 			var xPrivKey = mnemonic.toHDPrivateKey(passphrase);
+			// 			createWallet(xPrivKey, function(){
+			// 				onDone(keys.mnemonic_phrase, passphrase, deviceTempPrivKey, devicePrevTempPrivKey);
+			// 			});
+			// 		}
+			// 	});
+			// });
+			var passphrase = '';
+			var keys = JSON.parse(data);
+			var deviceTempPrivKey = Buffer(keys.temp_priv_key, 'base64');
+			var devicePrevTempPrivKey = Buffer(keys.prev_temp_priv_key, 'base64');
+			determineIfWalletExists(function(bWalletExists){
+				if (bWalletExists)
+					onDone(keys.mnemonic_phrase, passphrase, deviceTempPrivKey, devicePrevTempPrivKey);
+				else{
+					var mnemonic = new Mnemonic(keys.mnemonic_phrase);
+					var xPrivKey = mnemonic.toHDPrivateKey(passphrase);
+					createWallet(xPrivKey, function(){
 						onDone(keys.mnemonic_phrase, passphrase, deviceTempPrivKey, devicePrevTempPrivKey);
-					else{
-						var mnemonic = new Mnemonic(keys.mnemonic_phrase);
-						var xPrivKey = mnemonic.toHDPrivateKey(passphrase);
-						createWallet(xPrivKey, function(){
-							onDone(keys.mnemonic_phrase, passphrase, deviceTempPrivKey, devicePrevTempPrivKey);
-						});
-					}
-				});
+					});
+				}
 			});
 		}
 	});
