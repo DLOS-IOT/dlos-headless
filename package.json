@@ -1,0 +1,31 @@
+{
+  "name": "dlos-headless",
+  "description": "dlos headless wallet",
+  "author": "dlos",
+  "version": "0.1.9",
+  "main": "start.js",
+  "keywords": [
+    "wallet",
+    "headless",
+    "dlos",
+    "full node"
+  ],
+  "license": "MIT",
+  "repository": {
+    "url": "git://github.com/DLOS-IOT/dlos-headless.git",
+    "type": "git"
+  },
+  "bugs": {
+    "url": "https://github.com/DLOS-IOT/dlos-headless/issues"
+  },
+  "browser": {
+    "request": "browser-request",
+    "secp256k1": "secp256k1/js"
+  },
+  "dependencies": {
+    "dloscore": "git+https://github.com/DLOS-IOT/dloscore.git",
+    "bitcore-lib": "^0.13.14",
+    "bitcore-mnemonic": "~1.0.0",
+    "json-rpc2": "^1.0.2"
+  }
+}
