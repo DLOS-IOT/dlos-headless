@@ -7,7 +7,7 @@
 */
 
 "use strict";
-var headlessWallet = require('../start.js');
+var headlessWallet = require('./start.js');
 var conf = require('dloscore/conf.js');
 var eventBus = require('dloscore/event_bus.js');
 var db = require('dloscore/db.js');
@@ -15,13 +15,53 @@ var mutex = require('dloscore/mutex.js');
 var storage = require('dloscore/storage.js');
 var constants = require('dloscore/constants.js');
 var validationUtils = require("dloscore/validation_utils.js");
-
+var device = require('dloscore/device.js');
+const Gpio = require('rpio2/lib/index.js').Gpio;
+var sensorLib = require('node-dht-sensor');
+var sensorType = 11; // 11 for DHT11, 22 for DHT22 and AM2302
+var sensorPin  = 16;  // The GPIO pin number for sensor signal
+var led = new Gpio(12);  //创建 P36 引脚
 var wallet_id;
-
+var temptext=null;
 if (conf.bSingleAddress)
 	throw Error('can`t run in single address mode');
 
+	function getIPAdress(){  
+		var interfaces = require('os').networkInterfaces();  
+		for(var devName in interfaces){  
+			  var iface = interfaces[devName];  
+			  for(var i=0;i<iface.length;i++){  
+				   var alias = iface[i];  
+				   if(alias.family === 'IPv4' && alias.address !== '127.0.0.1' && !alias.internal){  
+						 return alias.address;  
+				   }  
+			  }  
+		}  
+	} 
+	function dht11(){  
+
+		if (!sensorLib.initialize(sensorType, sensorPin)) {
+			console.warn('Failed to initialize sensor');
+			//process.exit(1);
+		}else
+		{
+		var readout = sensorLib.read();
+		return 'Temperature:'+ readout.temperature.toFixed(1) + 'C'+'\n Humidity:   '+ readout.humidity.toFixed(1)    + '%'
+		console.log('Temperature:', readout.temperature.toFixed(1) + 'C');
+		console.log('Humidity:   ', readout.humidity.toFixed(1)    + '%');
+		}
+	// sensor.read(11, 36, function(err, temperature, humidity) {
+    //     if (!err) {
+	// 		return('温度: ' + temperature.toFixed(1) + '°C, ' +
+    //             '湿度: ' + humidity.toFixed(1) + '%'
+    //         );
+    //     }
+	// });  
+}  
 function initRPC() {
+	led.open(Gpio.OUTPUT);
+	led.open(Gpio.OUTPUT, Gpio.LOW);
+	console.log('+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++');
 	var composer = require('dloscore/composer.js');
 	var network = require('dloscore/network.js');
 
@@ -220,6 +260,57 @@ function initRPC() {
 		var httpServer = server.listen(conf.rpcPort, conf.rpcInterface);
 		httpServer.timeout = 900*1000;
 	});
+	led.open(Gpio.OUTPUT, Gpio.HIGH);
 }
 
 eventBus.on('headless_wallet_ready', initRPC);
+
+eventBus.on('text', function(from_address, text){
+	var str=Date.now() + " -- "+ from_address+': '+text;
+	console.log(str);
+	if (str != temptext)
+	{
+		
+		temptext=str;
+		switch (text) {
+			case "0":
+				// led.toggle();
+				led.open(Gpio.OUTPUT, Gpio.HIGH);
+				//led.close(); 
+				device.sendMessageToDevice(from_address, 'text', 'Off');
+				//device.sendMessageToDevice(from_address, 'text', 'LED: '+led.read());
+				break;
+			case "1":
+				led.open(Gpio.OUTPUT, Gpio.LOW);
+				//led.close(); 
+				device.sendMessageToDevice(from_address, 'text', 'On');
+				//device.sendMessageToDevice(from_address, 'text', 'LED: '+led.read());
+				break;		
+			case "ip":
+				device.sendMessageToDevice(from_address, 'text', 'My IP: '+getIPAdress());
+				break;
+			case "T":
+				led.toggle();
+				device.sendMessageToDevice(from_address, 'text', 'LED: '+led.read());
+				break;				
+			case "dht":
+				device.sendMessageToDevice(from_address, 'text', dht11());
+				break;
+
+			default:
+				device.sendMessageToDevice(from_address, 'text', 'Unknown command: \n'+text);
+				break;
+		}
+// for(var i = 0; i < 20; i++){
+//     led.toggle();  //切换 led 的电平状态
+//     led.sleep(30);  //等待 500ms
+// }
+
+
+		//控制指令
+	//	device.sendMessageToDevice(from_address, 'text', '非IOT设备\n\r'+str);
+	}
+
+
+
+});

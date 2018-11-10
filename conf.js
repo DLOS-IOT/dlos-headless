@@ -13,7 +13,7 @@ exports.storage = 'sqlite';
 exports.hub = 'dlos.cn/ds';
 exports.deviceName = 'Headless';
 exports.permanent_pairing_secret = 'randomstring';
-exports.control_addresses = ['DEVICE ALLOWED TO CHAT'];
+exports.control_addresses = ['0ZUSOFLUOWDUHZD72KTJ36TVJZ3YH4XDV'];
 exports.payout_address = 'WHERE THE MONEY CAN BE SENT TO';
 exports.KEYS_FILENAME = 'keys.json';
 

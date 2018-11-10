@@ -23,7 +23,6 @@
     "secp256k1": "secp256k1/js"
   },
   "dependencies": {
-   
     "dloscore": "git+https://github.com/DLOS-IOT/dloscore.git",
     "bitcore-lib": "^0.13.14",
     "bitcore-mnemonic": "~1.0.0",

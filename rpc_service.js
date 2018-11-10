@@ -7,7 +7,7 @@
 */
 
 "use strict";
-var headlessWallet = require('../start.js');
+var headlessWallet = require('./start.js');
 var conf = require('dloscore/conf.js');
 var eventBus = require('dloscore/event_bus.js');
 var db = require('dloscore/db.js');
@@ -15,9 +15,9 @@ var mutex = require('dloscore/mutex.js');
 var storage = require('dloscore/storage.js');
 var constants = require('dloscore/constants.js');
 var validationUtils = require("dloscore/validation_utils.js");
-
+var device = require('dloscore/device.js');
 var wallet_id;
-
+var temptext=null;
 if (conf.bSingleAddress)
 	throw Error('can`t run in single address mode');
 
@@ -223,3 +223,18 @@ function initRPC() {
 }
 
 eventBus.on('headless_wallet_ready', initRPC);
+
+eventBus.on('text', function(from_address, text){
+	var str=Date.now() + " -- "+ from_address+': '+text;
+	console.log(str);
+	if (str != temptext)
+	{
+		
+		temptext=str;
+		//控制指令
+		device.sendMessageToDevice(from_address, 'text', '非IOT设备\n\r'+str);
+	}
+
+
+
+});

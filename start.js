@@ -478,7 +478,95 @@ function signMessage(signing_address, message, cb) {
 	Wallet.signMessage(signing_address, message, [device.getMyDeviceAddress()], signWithLocalPrivateKey, cb);
 }
 
+function chatText(from_address, text, onUnknown){
+	
+	text = text.trim();
+	var fields = text.split(/ /);
+	var command = fields[0].trim().toLowerCase();
+	var params =['',''];
+	if (fields.length > 1) params[0] = fields[1].trim();
+	if (fields.length > 2) params[1] = fields[2].trim();
 
+	var walletDefinedByKeys = require('dloscore/wallet_defined_by_keys.js');
+	var device = require('dloscore/device.js');
+
+	switch(command){
+		case 'address':
+			if (conf.bSingleAddress)
+				readSingleAddress(function(address){
+					device.sendMessageToDevice(from_address, 'text', address);
+				});
+			else
+				walletDefinedByKeys.issueOrSelectNextAddress(wallet_id, 0, function(addressInfo){
+					device.sendMessageToDevice(from_address, 'text', addressInfo.address);
+				});
+			break;
+			
+		case 'balance':
+			prepareBalanceText(function(balance_text){
+				device.sendMessageToDevice(from_address, 'text', balance_text);
+			});
+			break;
+			
+		case 'pay':
+			analyzePayParams(params[0], params[1], function(asset, amount){
+				if(asset===null && amount===null){
+					var msg = "syntax: pay [amount] [asset]";
+					msg +=	"\namount: digits only";
+					msg +=	"\nasset: one of '', 'bytes', 'blackbytes', ASSET_ID";
+					msg +=	"\n";
+					msg +=	"\nExample 1: 'pay 12345' pays 12345 bytes";
+					msg +=	"\nExample 2: 'pay 12345 bytes' pays 12345 bytes";
+					msg +=	"\nExample 3: 'pay 12345 blackbytes' pays 12345 blackbytes";
+					msg +=	"\nExample 4: 'pay 12345 qO2JsiuDMh/j+pqJYZw3u82O71WjCDf0vTNvsnntr8o=' pays 12345 blackbytes";
+					msg +=	"\nExample 5: 'pay 12345 ASSET_ID' pays 12345 of asset with ID ASSET_ID";
+					return device.sendMessageToDevice(from_address, 'text', msg);
+				}
+
+				if (!conf.payout_address)
+					return device.sendMessageToDevice(from_address, 'text', "payout address not defined");
+
+				function payout(amount, asset){
+					if (conf.bSingleAddress)
+						readSingleAddress(function(address){
+							sendPayment(asset, amount, conf.payout_address, address, from_address);
+						});
+					else
+						// create a new change address or select first unused one
+						issueChangeAddressAndSendPayment(asset, amount, conf.payout_address, from_address);
+				};
+
+				if(asset!==null){
+					db.query("SELECT unit FROM assets WHERE unit=?", [asset], function(rows){
+						if(rows.length===1){
+							// asset exists
+							payout(amount, asset);
+						}else{
+							// unknown asset
+							device.sendMessageToDevice(from_address, 'text', 'unknown asset: '+asset);
+						}
+					});
+				}else{
+					payout(amount, asset);
+				}
+
+			});
+			break;
+
+		case 'mci':
+			storage.readLastMainChainIndex(function(last_mci){
+				device.sendMessageToDevice(from_address, 'text', last_mci.toString());
+			});
+			break;
+
+		default:
+			if (onUnknown){
+				onUnknown(from_address, text);
+			}else{
+				device.sendMessageToDevice(from_address, 'text', "unrecognized command");
+			}
+	}
+}
 function handleText(from_address, text, onUnknown){
 	
 	text = text.trim();
@@ -609,10 +697,21 @@ function setupChatEventHandlers(){
 	});
 
 	eventBus.on('text', function(from_address, text){
-		console.log('text from '+from_address+': '+text);
+		//console.log('text from '+from_address+': '+text);
+		
 		if (!isControlAddress(from_address))
-			return console.log('ignoring text from non-control address');
-		handleText(from_address, text);
+			{
+				//正常答复
+			//chatText(from_address, text);
+
+
+
+			//return console.log('ignoring text from non-control address');
+			}else
+			{
+				//命令系统
+		//handleText(from_address, text);
+			}
 	});
 }
 
